@@ -1,0 +1,1759 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SLS — Stay. Link. Share.</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
+
+<!-- ═══════════════════════════════════════════════
+     FIREBASE SDK  (v10 modular via CDN compat build)
+═══════════════════════════════════════════════ -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+
+<style>
+/* ─────────────────────────────────────────────
+   CSS VARIABLES
+───────────────────────────────────────────── */
+:root{
+  --bg:#eef0f4;--sur:#fff;--sur2:#f4f6f9;--sur3:#e2e5eb;
+  --bdr:rgba(0,0,0,.07);--tx:#0c1015;--tx2:#52606e;--tx3:#9aa3ad;
+  --acc:#00b894;--accD:#009b7d;--accL:#e6faf6;--accG:rgba(0,184,148,.18);
+  --red:#e74c3c;--blue:#3498db;
+  --bi:#fff;--bit:#0c1015;--bo:#00b894;--bot:#fff;
+  --sw:340px;--f:'DM Sans',sans-serif;--f2:'Syne',sans-serif;
+  --ez:cubic-bezier(0.4,0,0.2,1);--t:.2s;
+  --sh:0 2px 16px rgba(0,0,0,.07);--shlg:0 12px 48px rgba(0,0,0,.13);
+}
+[data-theme="dark"]{
+  --bg:#0d1117;--sur:#161b22;--sur2:#1c2330;--sur3:#252d3a;
+  --bdr:rgba(255,255,255,.06);--tx:#e6edf3;--tx2:#8b949e;--tx3:#4d5761;
+  --acc:#00d4a8;--accD:#00b894;--accL:rgba(0,212,168,.1);--accG:rgba(0,212,168,.12);
+  --bi:#1c2330;--bit:#e6edf3;
+  --sh:0 2px 20px rgba(0,0,0,.4);--shlg:0 12px 48px rgba(0,0,0,.55);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden;background:var(--bg);font-family:var(--f);color:var(--tx);transition:background var(--t),color var(--t)}
+button{font-family:var(--f);cursor:pointer;border:none;background:none}
+input,textarea{font-family:var(--f)}
+::-webkit-scrollbar{width:3px}::-webkit-scrollbar-thumb{background:var(--bdr);border-radius:3px}
+
+/* ─────────────────────────────────────────────
+   SETUP SCREEN (Firebase config entry)
+───────────────────────────────────────────── */
+#setup-screen{
+  position:fixed;inset:0;display:flex;align-items:center;justify-content:center;
+  background:linear-gradient(145deg,#050e1a,#0a1628 50%,#071120);z-index:1100;
+  transition:opacity .4s;
+}
+#setup-screen::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 60% 50% at 50% 0%,rgba(0,184,148,.12),transparent 70%);pointer-events:none}
+.setup-card{
+  width:480px;max-width:96vw;
+  background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.09);
+  border-radius:28px;padding:40px 38px;text-align:center;
+  box-shadow:0 30px 80px rgba(0,0,0,.6);backdrop-filter:blur(20px);
+  animation:sIn .4s var(--ez) both;
+}
+.sls-logo{width:72px;height:72px;background:linear-gradient(135deg,#00b894,#00d4b8);border-radius:22px;display:flex;align-items:center;justify-content:center;font-family:var(--f2);font-size:26px;font-weight:800;color:#fff;margin:0 auto 18px;box-shadow:0 8px 28px rgba(0,184,148,.45)}
+.setup-title{font-family:var(--f2);font-size:22px;font-weight:700;color:#fff;margin-bottom:6px}
+.setup-sub{font-size:13px;color:rgba(255,255,255,.45);margin-bottom:28px;line-height:1.6}
+.cfg-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;text-align:left}
+.cfg-full{grid-column:1/-1}
+.cfg-label{font-size:10px;font-weight:600;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.8px;margin-bottom:5px}
+.cfg-inp{
+  width:100%;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);
+  border-radius:10px;padding:10px 12px;color:#fff;font-size:12px;
+  outline:none;transition:border-color .2s;
+}
+.cfg-inp:focus{border-color:rgba(0,184,148,.55)}
+.cfg-inp::placeholder{color:rgba(255,255,255,.2)}
+.setup-btn{
+  width:100%;background:linear-gradient(135deg,#00b894,#00d4b8);border-radius:13px;
+  padding:13px;color:#fff;font-family:var(--f2);font-size:14px;font-weight:700;
+  box-shadow:0 6px 22px rgba(0,184,148,.35);transition:transform .14s,box-shadow .14s;margin-top:8px;
+}
+.setup-btn:hover{transform:translateY(-2px);box-shadow:0 10px 28px rgba(0,184,148,.42)}
+.setup-hint{font-size:11px;color:rgba(255,255,255,.28);margin-top:14px;line-height:1.7}
+.setup-hint a{color:rgba(0,212,168,.8);text-decoration:none}
+.setup-hint a:hover{text-decoration:underline}
+.setup-err{font-size:12px;color:#ff7675;margin-top:10px;display:none}
+
+/* ─────────────────────────────────────────────
+   LOADING OVERLAY
+───────────────────────────────────────────── */
+#loading{
+  position:fixed;inset:0;background:linear-gradient(145deg,#050e1a,#0a1628);
+  display:none;align-items:center;justify-content:center;z-index:1000;
+  flex-direction:column;gap:16px;
+}
+#loading.on{display:flex}
+.spin{width:48px;height:48px;border:3px solid rgba(0,184,148,.2);border-top:3px solid #00b894;border-radius:50%;animation:spin .8s linear infinite}
+.loading-txt{font-family:var(--f2);font-size:14px;color:rgba(255,255,255,.6)}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ─────────────────────────────────────────────
+   AUTH
+───────────────────────────────────────────── */
+#auth{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:linear-gradient(145deg,#050e1a,#0a1628 50%,#071120);z-index:999;transition:opacity .4s}
+#auth.on{display:flex}
+#auth::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 60% 50% at 50% 0%,rgba(0,184,148,.12),transparent 70%);pointer-events:none}
+.acard{width:400px;max-width:95vw;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.09);border-radius:28px;padding:44px 40px;text-align:center;box-shadow:0 30px 80px rgba(0,0,0,.6);backdrop-filter:blur(20px);animation:sIn .4s var(--ez) both}
+.alogo{width:76px;height:76px;background:linear-gradient(135deg,#00b894,#00d4b8);border-radius:24px;display:flex;align-items:center;justify-content:center;font-family:var(--f2);font-size:28px;font-weight:800;color:#fff;margin:0 auto 20px;box-shadow:0 8px 30px rgba(0,184,148,.45)}
+.atitle{font-family:var(--f2);font-size:26px;font-weight:700;color:#fff;margin-bottom:4px}
+.asub{font-size:13px;color:rgba(255,255,255,.4);margin-bottom:32px}
+.astep{display:none;animation:fUp .3s var(--ez) both}
+.astep.on{display:block}
+.albl{font-size:11px;font-weight:600;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.9px;text-align:left;margin-bottom:7px}
+.pr{display:flex;gap:8px;margin-bottom:14px}
+.cc{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.11);border-radius:12px;padding:12px 14px;color:#fff;font-size:14px;font-weight:600;white-space:nowrap;display:flex;align-items:center;gap:5px}
+.ai{flex:1;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.11);border-radius:12px;padding:13px 15px;color:#fff;font-size:14px;outline:none;transition:border-color .2s,box-shadow .2s;width:100%}
+.ai:focus{border-color:rgba(0,184,148,.6);box-shadow:0 0 0 3px rgba(0,184,148,.12)}
+.ai::placeholder{color:rgba(255,255,255,.25)}
+.abtn{width:100%;background:linear-gradient(135deg,#00b894,#00d4b8);border-radius:14px;padding:14px;color:#fff;font-family:var(--f2);font-size:15px;font-weight:600;box-shadow:0 6px 22px rgba(0,184,148,.35);transition:transform .14s,box-shadow .14s;margin-top:6px}
+.abtn:hover{transform:translateY(-2px);box-shadow:0 10px 30px rgba(0,184,148,.42)}
+.abtn:disabled{opacity:.5;transform:none;cursor:not-allowed}
+.ahint{font-size:12px;color:rgba(255,255,255,.3);margin-top:14px;line-height:1.65}
+.aerr{font-size:12px;color:#ff7675;margin-top:8px;display:none}
+.orow{display:flex;gap:9px;justify-content:center;margin-bottom:22px}
+.od{width:50px;height:58px;text-align:center;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.11);border-radius:12px;color:#fff;font-size:24px;font-weight:700;outline:none;transition:border-color .2s,box-shadow .2s}
+.od:focus{border-color:rgba(0,184,148,.65);box-shadow:0 0 0 3px rgba(0,184,148,.14)}
+.nr{display:flex;gap:9px;margin-bottom:13px}
+.avpick{width:82px;height:82px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:36px;margin:0 auto 18px;cursor:pointer;border:3px solid rgba(255,255,255,.12);position:relative;transition:transform .18s}
+.avpick:hover{transform:scale(1.06)}
+.avbadge{position:absolute;bottom:0;right:0;background:#00b894;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-size:12px;border:2px solid #0a1628;color:#fff}
+
+/* ─────────────────────────────────────────────
+   MAIN APP
+───────────────────────────────────────────── */
+#app{display:flex;height:100%;opacity:0;pointer-events:none;transition:opacity .5s}
+#app.vis{opacity:1;pointer-events:all}
+
+/* SIDEBAR */
+.sb{width:var(--sw);min-width:var(--sw);background:var(--sur);border-right:1px solid var(--bdr);display:flex;flex-direction:column;position:relative;z-index:10;transition:background var(--t)}
+.sbh{padding:14px 14px 10px;display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--bdr)}
+.sblogo{font-family:var(--f2);font-size:22px;font-weight:800;background:linear-gradient(135deg,#00b894,#00a8ff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.sbacts{display:flex;gap:2px;margin-left:auto}
+.ib{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;color:var(--tx2);transition:background var(--t),color var(--t)}
+.ib:hover{background:var(--sur2);color:var(--acc)}
+.ib svg{width:17px;height:17px;flex-shrink:0}
+.sbs{padding:9px 12px 6px}
+.sbox{display:flex;align-items:center;gap:8px;background:var(--sur2);border:1px solid var(--bdr);border-radius:12px;padding:8px 12px;transition:border-color .18s,box-shadow .18s}
+.sbox:focus-within{border-color:var(--acc);box-shadow:0 0 0 3px var(--accG)}
+.sbox svg{width:14px;height:14px;color:var(--tx3);flex-shrink:0}
+.sbox input{flex:1;background:transparent;border:none;outline:none;font-size:13px;color:var(--tx)}
+.sbox input::placeholder{color:var(--tx3)}
+.strip{padding:8px 12px 2px;display:flex;gap:10px;overflow-x:auto;scrollbar-width:none}
+.strip::-webkit-scrollbar{display:none}
+.sdot{display:flex;flex-direction:column;align-items:center;gap:4px;flex-shrink:0;cursor:pointer}
+.sring{width:54px;height:54px;border-radius:50%;background:linear-gradient(135deg,#00b894,#00a8ff);padding:2.5px;position:relative}
+.sring.seen{background:var(--sur3)}
+.sring.add{background:transparent;border:2px dashed var(--acc);display:flex;align-items:center;justify-content:center}
+.sinner{width:100%;height:100%;border-radius:50%;border:2.5px solid var(--sur);display:flex;align-items:center;justify-content:center;font-size:22px;background:var(--sur2)}
+.sname{font-size:10px;color:var(--tx2);max-width:54px;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.addico{position:absolute;bottom:-1px;right:-1px;width:20px;height:20px;background:var(--acc);border-radius:50%;border:2.5px solid var(--sur);display:flex;align-items:center;justify-content:center;color:#fff;font-size:13px;font-weight:700}
+.sbtabs{display:flex;padding:4px 10px 0;gap:2px;border-bottom:1px solid var(--bdr)}
+.stt{padding:7px 13px;border-radius:10px 10px 0 0;font-size:12px;font-weight:600;color:var(--tx2);cursor:pointer;transition:color .15s;position:relative}
+.stt.on{color:var(--acc)}
+.stt.on::after{content:'';position:absolute;bottom:-1px;left:0;right:0;height:2.5px;background:var(--acc);border-radius:2px 2px 0 0}
+.clist{flex:1;overflow-y:auto;padding:4px 0 62px;scrollbar-width:thin;scrollbar-color:var(--bdr) transparent}
+.ci{display:flex;align-items:center;gap:11px;padding:9px 12px;cursor:pointer;border-radius:14px;margin:1px 6px;transition:background .12s}
+.ci:hover{background:var(--sur2)}
+.ci.act{background:var(--accL)}
+.ciav{width:48px;height:48px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:700;position:relative;color:#fff}
+.odot{position:absolute;bottom:1px;right:1px;width:13px;height:13px;background:#2ecc71;border-radius:50%;border:2.5px solid var(--sur)}
+.cibody{flex:1;min-width:0}
+.citop{display:flex;justify-content:space-between;align-items:center;margin-bottom:2px}
+.ciname{font-size:14px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:155px}
+.citime{font-size:11px;color:var(--tx3)}
+.cibot{display:flex;justify-content:space-between;align-items:center}
+.ciprev{font-size:13px;color:var(--tx2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:178px}
+.badge{background:var(--acc);color:#fff;font-size:11px;font-weight:700;border-radius:20px;padding:2px 7px;flex-shrink:0}
+.gtag{display:inline-block;background:rgba(0,184,148,.15);color:var(--acc);border-radius:6px;padding:1px 5px;font-size:9px;font-weight:700;margin-left:4px;vertical-align:middle}
+.fab{position:absolute;bottom:18px;right:16px;width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,#00b894,#00d4b8);display:flex;align-items:center;justify-content:center;box-shadow:0 6px 22px rgba(0,184,148,.4);z-index:20;transition:transform .18s,box-shadow .18s}
+.fab:hover{transform:scale(1.1) rotate(12deg);box-shadow:0 10px 30px rgba(0,184,148,.5)}
+.fab svg{width:22px;height:22px;color:#fff}
+.cmenu{position:absolute;bottom:82px;right:16px;background:var(--sur);border:1px solid var(--bdr);border-radius:16px;padding:6px;box-shadow:var(--shlg);z-index:25;display:none;flex-direction:column;gap:2px;min-width:165px;animation:fUp .2s var(--ez) both}
+.cmenu.on{display:flex}
+.cmitem{display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:10px;cursor:pointer;font-size:14px;font-weight:500;color:var(--tx);transition:background .12s}
+.cmitem:hover{background:var(--sur2)}
+.cmitem em{font-size:20px;font-style:normal;flex-shrink:0}
+
+/* CHAT PANEL */
+.cp{flex:1;display:flex;flex-direction:column;background:var(--bg);transition:background var(--t);position:relative}
+.cpbg{position:absolute;inset:0;pointer-events:none;opacity:.45;background-image:radial-gradient(circle at 15% 25%,var(--accG),transparent 55%),radial-gradient(circle at 85% 75%,rgba(0,168,255,.06),transparent 55%)}
+.welcome{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;text-align:center;padding:40px;position:relative;z-index:1}
+.wico{width:96px;height:96px;background:linear-gradient(135deg,#00b894,#00a8ff);border-radius:28px;display:flex;align-items:center;justify-content:center;font-size:44px;margin-bottom:6px;box-shadow:0 10px 36px rgba(0,184,148,.28)}
+.wtitle{font-family:var(--f2);font-size:24px;font-weight:700}
+.wsub{font-size:14px;color:var(--tx2);max-width:280px;line-height:1.65}
+#achat{display:none;flex-direction:column;height:100%;flex:1}
+.tbar{display:flex;align-items:center;gap:10px;padding:11px 16px;background:var(--sur);border-bottom:1px solid var(--bdr);position:relative;z-index:5}
+.tbav{width:42px;height:42px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:18px;cursor:pointer;color:#fff;font-weight:700}
+.tbinfo{flex:1;min-width:0}
+.tbname{font-family:var(--f2);font-size:15px;font-weight:600}
+.tbstat{font-size:12px;color:var(--acc)}
+.tbstat.away{color:var(--tx3)}
+.msgs{flex:1;overflow-y:auto;padding:16px 20px;display:flex;flex-direction:column;gap:5px;position:relative;z-index:1;scrollbar-width:thin;scrollbar-color:var(--bdr) transparent}
+.mr{display:flex;align-items:flex-end;gap:8px}
+.mr.out{flex-direction:row-reverse}
+.bub{max-width:68%;padding:9px 14px;font-size:14px;line-height:1.55;box-shadow:0 1px 3px rgba(0,0,0,.09);word-wrap:break-word}
+.mr.in .bub{background:var(--bi);color:var(--bit);border-radius:18px 18px 18px 4px}
+.mr.out .bub{background:var(--bo);color:var(--bot);border-radius:18px 18px 4px 18px}
+.bt{font-size:10px;opacity:.65;text-align:right;margin-top:4px;display:flex;align-items:center;justify-content:flex-end;gap:3px}
+.bchk{font-size:10px}
+.bchk.rd{color:rgba(255,255,255,.85)}
+.dsep{text-align:center;margin:10px 0;font-size:11px;color:var(--tx3);display:flex;align-items:center;gap:8px}
+.dsep::before,.dsep::after{content:'';flex:1;height:1px;background:var(--bdr)}
+.typr{display:flex;align-items:center;gap:8px;padding:2px 0}
+.typdots{padding:10px 14px;background:var(--bi);border-radius:18px 18px 18px 4px;display:flex;gap:4px;box-shadow:0 1px 3px rgba(0,0,0,.09)}
+.tdot{width:7px;height:7px;border-radius:50%;background:var(--tx3);animation:tdB 1.2s infinite}
+.tdot:nth-child(2){animation-delay:.2s}.tdot:nth-child(3){animation-delay:.4s}
+@keyframes tdB{0%,80%,100%{transform:translateY(0)}40%{transform:translateY(-7px)}}
+.ibar{padding:10px 14px;background:var(--sur);border-top:1px solid var(--bdr);display:flex;align-items:flex-end;gap:9px;position:relative;z-index:5}
+.mbox{flex:1;background:var(--sur2);border:1px solid var(--bdr);border-radius:22px;padding:10px 15px;min-height:44px;max-height:130px;font-size:14px;color:var(--tx);outline:none;resize:none;overflow:hidden;line-height:1.45;transition:border-color .18s,box-shadow .18s}
+.mbox:focus{border-color:var(--acc);box-shadow:0 0 0 3px var(--accG)}
+.mbox:empty::before{content:attr(data-ph);color:var(--tx3);pointer-events:none}
+.sbtn{width:44px;height:44px;border-radius:50%;flex-shrink:0;background:linear-gradient(135deg,#00b894,#00d4b8);display:flex;align-items:center;justify-content:center;color:#fff;box-shadow:0 4px 16px rgba(0,184,148,.38);transition:transform .14s,box-shadow .14s}
+.sbtn:hover{transform:scale(1.08);box-shadow:0 7px 22px rgba(0,184,148,.48)}
+.sbtn svg{width:18px;height:18px}
+.attbtn{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:var(--tx3);margin-bottom:3px;transition:color .15s}
+.attbtn:hover{color:var(--acc)}
+
+/* CALL */
+.cov{position:fixed;inset:0;background:rgba(0,0,0,.94);display:none;align-items:center;justify-content:center;z-index:800;backdrop-filter:blur(24px)}
+.cov.on{display:flex}
+.ccard{background:linear-gradient(160deg,#0d1f35,#091626);border:1px solid rgba(255,255,255,.07);border-radius:36px;padding:48px 44px 40px;text-align:center;width:300px;box-shadow:0 40px 90px rgba(0,0,0,.65);animation:sIn .28s var(--ez) both}
+.cav{width:94px;height:94px;border-radius:50%;margin:0 auto 16px;font-size:40px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;box-shadow:0 0 0 10px rgba(0,184,148,.1),0 0 0 20px rgba(0,184,148,.05)}
+.cname{font-family:var(--f2);font-size:23px;font-weight:700;color:#fff;margin-bottom:5px}
+.cstat{font-size:13px;color:rgba(0,212,168,.9);margin-bottom:30px}
+.ctmr{font-family:var(--f2);font-size:22px;font-weight:700;color:#fff;margin-bottom:24px;display:none}
+.cbtns{display:flex;justify-content:center;gap:18px}
+.cbtn{width:64px;height:64px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:26px;transition:transform .14s}
+.cbtn:hover{transform:scale(1.1)}
+.cbtn.end{background:#e74c3c;box-shadow:0 5px 22px rgba(231,76,60,.4)}
+.cbtn.ans{background:#27ae60;box-shadow:0 5px 22px rgba(39,174,96,.4)}
+.cbtn.mute,.cbtn.spk{background:rgba(255,255,255,.1)}
+@keyframes cR{0%,100%{box-shadow:0 0 0 0 rgba(39,174,96,.5)}50%{box-shadow:0 0 0 14px rgba(39,174,96,0)}}
+.cbtn.ans{animation:cR 1.1s infinite}
+
+/* STORY VIEWER */
+.svov{position:fixed;inset:0;background:#000;display:none;flex-direction:column;z-index:700}
+.svov.on{display:flex}
+.svbars{display:flex;gap:4px;padding:12px 12px 0}
+.svseg{flex:1;height:3px;background:rgba(255,255,255,.25);border-radius:2px;overflow:hidden}
+.svfill{height:100%;background:#fff;width:0;transition:width 5.5s linear}
+.svfill.done{width:100%;transition:none}
+.svhead{display:flex;align-items:center;gap:10px;padding:10px 12px}
+.svinfo{flex:1;display:flex;align-items:center;gap:10px}
+.svuav{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;color:#fff;font-weight:700}
+.svuname{color:#fff;font-size:14px;font-weight:600}
+.svutime{color:rgba(255,255,255,.5);font-size:12px}
+.svclose{color:#fff;font-size:22px;background:transparent;border:none;cursor:pointer}
+.svbody{flex:1;display:flex;align-items:center;justify-content:center;position:relative}
+.svmain{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:90px}
+.svtxtw{position:absolute;bottom:70px;left:0;right:0;padding:0 28px;text-align:center}
+.svbub{display:inline-block;background:rgba(0,0,0,.55);backdrop-filter:blur(12px);border-radius:16px;padding:14px 20px;color:#fff;font-size:15px;line-height:1.6;max-width:380px}
+.svnav{position:absolute;top:0;bottom:0;width:38%;cursor:pointer}
+.svnav.l{left:0}.svnav.r{right:0}
+.svrep{padding:12px;display:flex;gap:9px;border-top:1px solid rgba(255,255,255,.09)}
+.svri{flex:1;background:rgba(255,255,255,.09);border:1px solid rgba(255,255,255,.15);border-radius:22px;padding:10px 15px;color:#fff;font-size:14px;outline:none}
+.svri::placeholder{color:rgba(255,255,255,.35)}
+.svrsnd{width:40px;height:40px;border-radius:50%;background:var(--acc);display:flex;align-items:center;justify-content:center;color:#fff;flex-shrink:0}
+
+/* MODALS */
+.ov{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;z-index:500;backdrop-filter:blur(4px)}
+.ov.on{display:flex}
+.modal{background:var(--sur);border-radius:22px;padding:28px;width:390px;max-width:95vw;box-shadow:var(--shlg);border:1px solid var(--bdr);animation:sIn .24s var(--ez) both;max-height:90vh;overflow-y:auto}
+.mtitle{font-family:var(--f2);font-size:17px;font-weight:700;margin-bottom:18px;display:flex;align-items:center;gap:8px}
+.minp{width:100%;background:var(--sur2);border:1px solid var(--bdr);border-radius:12px;padding:12px 14px;font-size:14px;color:var(--tx);outline:none;margin-bottom:11px;transition:border-color .18s}
+.minp:focus{border-color:var(--acc)}
+.minp::placeholder{color:var(--tx3)}
+.mbtns{display:flex;gap:10px;margin-top:8px}
+.mb{flex:1;padding:12px;border-radius:12px;font-size:14px;font-weight:600;transition:opacity .15s,background .15s}
+.mb.p{background:var(--acc);color:#fff}
+.mb.s{background:var(--sur2);color:var(--tx2)}
+.mb:hover{opacity:.85}
+.mb.danger{background:rgba(231,76,60,.12);color:#e74c3c}
+.mb.danger:hover{background:#e74c3c;color:#fff;opacity:1}
+.cpick{max-height:200px;overflow-y:auto;border:1px solid var(--bdr);border-radius:12px;margin-bottom:12px}
+.cpitem{display:flex;align-items:center;gap:10px;padding:10px 12px;cursor:pointer;transition:background .12s}
+.cpitem:hover{background:var(--sur2)}
+.cpitem.sel{background:var(--accL)}
+.cpchk{width:20px;height:20px;border-radius:50%;border:2px solid var(--bdr);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:10px;transition:background .15s,border-color .15s}
+.cpitem.sel .cpchk{background:var(--acc);border-color:var(--acc);color:#fff}
+.cpav{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;color:#fff;font-weight:700}
+.cpname{font-size:14px;font-weight:500}
+.cpsub{font-size:11px;color:var(--tx3)}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;min-height:2px}
+.chip{background:var(--accL);border:1px solid rgba(0,184,148,.2);border-radius:20px;padding:4px 10px 4px 6px;display:flex;align-items:center;gap:5px;font-size:12px;font-weight:600;color:var(--acc)}
+.chip .x{cursor:pointer;font-size:13px;color:var(--tx3);margin-left:2px}
+.chip .x:hover{color:var(--red)}
+
+/* SETTINGS */
+.sp{position:fixed;top:0;right:-400px;width:380px;height:100%;background:var(--sur);border-left:1px solid var(--bdr);box-shadow:var(--shlg);z-index:400;display:flex;flex-direction:column;transition:right .32s var(--ez)}
+.sp.open{right:0}
+.sph{padding:16px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--bdr);background:var(--sur);position:sticky;top:0;z-index:5}
+.sph .title{font-family:var(--f2);font-size:17px;font-weight:700;flex:1}
+.spcl{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:var(--tx2);transition:background .15s}
+.spcl:hover{background:var(--sur2)}
+.sp-body{flex:1;overflow-y:auto}
+.sp-prof{padding:20px 16px;display:flex;gap:14px;align-items:center;border-bottom:1px solid var(--bdr);cursor:pointer;transition:background .15s}
+.sp-prof:hover{background:var(--sur2)}
+.sp-pav{width:64px;height:64px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:28px;color:#fff;font-weight:700}
+.sp-pname{font-size:16px;font-weight:700;font-family:var(--f2)}
+.sp-pun{font-size:13px;color:var(--acc);margin-top:2px}
+.sp-pph{font-size:12px;color:var(--tx3);margin-top:1px}
+.sec{border-bottom:1px solid var(--bdr)}
+.sech{padding:14px 16px 6px;font-size:11px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.8px}
+.srow{display:flex;align-items:center;gap:12px;padding:12px 16px;cursor:pointer;transition:background .12s}
+.srow:hover{background:var(--sur2)}
+.sico{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:18px}
+.srtxt{flex:1}
+.srtitle{font-size:14px;font-weight:500}
+.srsub{font-size:12px;color:var(--tx3);margin-top:1px}
+.srrgt{font-size:13px;color:var(--tx3);display:flex;align-items:center;gap:4px}
+.srrgt svg{width:14px;height:14px}
+.tog{width:44px;height:24px;border-radius:12px;background:var(--sur3);position:relative;cursor:pointer;transition:background .25s;flex-shrink:0}
+.tog.on{background:var(--acc)}
+.togk{position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.25);transition:transform .25s var(--ez)}
+.tog.on .togk{transform:translateX(20px)}
+.spsub{display:none;flex-direction:column}
+.spsub.on{display:flex}
+.pi{padding:13px 16px;border-bottom:1px solid var(--bdr);cursor:pointer;transition:background .12s}
+.pi:hover{background:var(--sur2)}
+.pititle{font-size:14px;font-weight:500}
+.pival{font-size:12px;color:var(--acc);margin-top:2px}
+.pidesc{font-size:12px;color:var(--tx3);margin-top:3px;line-height:1.5}
+.dtext{color:var(--red)!important}
+
+/* EMOJI */
+.epop{position:fixed;bottom:72px;right:68px;background:var(--sur);border:1px solid var(--bdr);border-radius:18px;padding:14px;z-index:200;box-shadow:var(--shlg);display:none;flex-wrap:wrap;gap:5px;width:268px}
+.epop.on{display:flex}
+.ep{width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:21px;cursor:pointer;transition:background .12s,transform .1s}
+.ep:hover{background:var(--sur2);transform:scale(1.15)}
+
+/* TOAST */
+.toast{position:fixed;top:18px;right:18px;z-index:900;background:var(--sur);border:1px solid var(--bdr);border-radius:14px;padding:12px 16px;box-shadow:var(--shlg);display:flex;align-items:center;gap:10px;max-width:300px;transform:translateX(130%);transition:transform .3s var(--ez)}
+.toast.on{transform:translateX(0)}
+.tico{font-size:22px;flex-shrink:0}
+.ttitle{font-size:13px;font-weight:600}
+.tbody{font-size:12px;color:var(--tx2);margin-top:1px}
+
+/* STATUS INDICATOR */
+.conn-status{
+  padding:5px 12px;font-size:11px;font-weight:600;text-align:center;
+  display:none;transition:all .3s;
+}
+.conn-status.show{display:block}
+.conn-status.ok{background:rgba(0,184,148,.12);color:var(--acc)}
+.conn-status.err{background:rgba(231,76,60,.1);color:var(--red)}
+
+/* MOBILE */
+@media(max-width:720px){
+  :root{--sw:100vw}
+  .cp{position:fixed;inset:0;z-index:30;transform:translateX(102%)}
+  .cp.mo{transform:translateX(0)}
+  .bckbtn{display:flex!important}
+  .sp{width:100%;right:-102%}
+}
+.bckbtn{display:none;width:34px;height:34px;border-radius:50%;align-items:center;justify-content:center;color:var(--tx);transition:background .15s}
+.bckbtn:hover{background:var(--sur2)}
+
+/* AVATARS */
+.a0{background:linear-gradient(135deg,#00b894,#00a8ff)}
+.a1{background:linear-gradient(135deg,#a29bfe,#6c5ce7)}
+.a2{background:linear-gradient(135deg,#fd79a8,#d63031)}
+.a3{background:linear-gradient(135deg,#ffeaa7,#e17055)}
+.a4{background:linear-gradient(135deg,#74b9ff,#0069de)}
+.a5{background:linear-gradient(135deg,#55efc4,#00b894)}
+.a6{background:linear-gradient(135deg,#b2bec3,#636e72)}
+.a7{background:linear-gradient(135deg,#ffecd2,#fcb69f)}
+
+@keyframes fUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+@keyframes sIn{from{opacity:0;transform:scale(.9)}to{opacity:1;transform:scale(1)}}
+.fu{animation:fUp .3s var(--ez) both}
+</style>
+</head>
+<body>
+
+<!-- ════════════════════════
+   LOADING
+════════════════════════ -->
+<div id="loading">
+  <div class="spin"></div>
+  <div class="loading-txt" id="loading-txt">Connecting to SLS…</div>
+</div>
+
+<!-- ════════════════════════
+   FIREBASE SETUP SCREEN
+════════════════════════ -->
+<div id="setup-screen">
+  <div class="setup-card">
+    <div class="sls-logo">SLS</div>
+    <div class="setup-title">Connect SLS to Firebase</div>
+    <div class="setup-sub">
+      Enter your Firebase project credentials to enable real cross-device messaging.<br>
+      <a href="https://console.firebase.google.com" target="_blank">Get your config from Firebase Console →</a>
+    </div>
+    <div class="cfg-grid">
+      <div>
+        <div class="cfg-label">API Key</div>
+        <input class="cfg-inp" id="cfg-apiKey" placeholder="AIzaSy…">
+      </div>
+      <div>
+        <div class="cfg-label">Auth Domain</div>
+        <input class="cfg-inp" id="cfg-authDomain" placeholder="project.firebaseapp.com">
+      </div>
+      <div>
+        <div class="cfg-label">Project ID</div>
+        <input class="cfg-inp" id="cfg-projectId" placeholder="my-sls-app">
+      </div>
+      <div>
+        <div class="cfg-label">Storage Bucket</div>
+        <input class="cfg-inp" id="cfg-storageBucket" placeholder="project.appspot.com">
+      </div>
+      <div>
+        <div class="cfg-label">Messaging Sender ID</div>
+        <input class="cfg-inp" id="cfg-messagingSenderId" placeholder="123456789">
+      </div>
+      <div>
+        <div class="cfg-label">App ID</div>
+        <input class="cfg-inp" id="cfg-appId" placeholder="1:123:web:abc">
+      </div>
+      <div class="cfg-full">
+        <div class="cfg-label">Database URL (Realtime DB)</div>
+        <input class="cfg-inp" id="cfg-databaseURL" placeholder="https://project-default-rtdb.firebaseio.com">
+      </div>
+    </div>
+    <button class="setup-btn" onclick="initFirebase()">🔌 Connect to Firebase</button>
+    <div class="setup-err" id="setup-err"></div>
+    <div class="setup-hint">
+      ① Create a project at <a href="https://console.firebase.google.com" target="_blank">console.firebase.google.com</a><br>
+      ② Enable <b>Authentication → Anonymous</b> sign-in<br>
+      ③ Create a <b>Firestore Database</b> (start in test mode)<br>
+      ④ Create a <b>Realtime Database</b> (test mode)<br>
+      ⑤ Paste the config values above and click Connect
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════
+   AUTH
+════════════════════════ -->
+<div id="auth">
+  <div class="acard">
+    <div class="alogo">SLS</div>
+    <div class="atitle">Welcome to SLS</div>
+    <div class="asub">Stay. Link. Share.</div>
+
+    <div class="astep on" id="s1">
+      <div class="albl">Cameroonian Phone Number</div>
+      <div class="pr">
+        <div class="cc">🇨🇲 +237</div>
+        <input class="ai" id="iph" type="tel" placeholder="6XX XXX XXX" maxlength="9" inputmode="numeric">
+      </div>
+      <button class="abtn" id="btn-otp" onclick="auth1()">Continue</button>
+      <div class="aerr" id="aerr1"></div>
+      <div class="ahint">Your number is your SLS identity. Others find you by it.</div>
+    </div>
+
+    <div class="astep" id="s2">
+      <div class="albl">6-digit OTP sent to +237 <span id="otpph" style="color:rgba(255,255,255,.7)"></span></div>
+      <div class="orow">
+        <input class="od" maxlength="1" inputmode="numeric" oninput="oi(this,0)">
+        <input class="od" maxlength="1" inputmode="numeric" oninput="oi(this,1)">
+        <input class="od" maxlength="1" inputmode="numeric" oninput="oi(this,2)">
+        <input class="od" maxlength="1" inputmode="numeric" oninput="oi(this,3)">
+        <input class="od" maxlength="1" inputmode="numeric" oninput="oi(this,4)">
+        <input class="od" maxlength="1" inputmode="numeric" oninput="oi(this,5)">
+      </div>
+      <button class="abtn" onclick="auth2()">Verify</button>
+      <div class="aerr" id="aerr2"></div>
+      <div class="ahint">Demo mode: any 6 digits work. In production connect an SMS gateway.</div>
+    </div>
+
+    <div class="astep" id="s3">
+      <div class="avpick a0" id="avp" onclick="cycAv()">
+        <span id="avem">😊</span>
+        <div class="avbadge">✎</div>
+      </div>
+      <div class="albl">Your Name</div>
+      <div class="nr">
+        <input class="ai" id="ifn" placeholder="First name">
+        <input class="ai" id="iln" placeholder="Last name">
+      </div>
+      <div class="albl" style="margin-top:4px">Username</div>
+      <input class="ai" id="iun" placeholder="@yourname" style="margin-bottom:14px">
+      <button class="abtn" id="btn-finish" onclick="auth3()">Create Account →</button>
+      <div class="aerr" id="aerr3"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════
+   APP
+════════════════════════ -->
+<div id="app">
+  <!-- SIDEBAR -->
+  <div class="sb">
+    <div class="sbh">
+      <span class="sblogo">SLS</span>
+      <div class="sbacts">
+        <button class="ib" title="Settings" onclick="openSP()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        </button>
+        <button class="ib" title="Theme" onclick="togTheme()">
+          <svg id="thico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+        </button>
+      </div>
+    </div>
+    <div class="conn-status" id="conn-status"></div>
+    <div class="sbs">
+      <div class="sbox">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input placeholder="Search by name or +237 number…" oninput="filterC(this.value)" id="sinp">
+      </div>
+    </div>
+    <div class="strip" id="strip"></div>
+    <div class="sbtabs">
+      <div class="stt on" onclick="swTab('all',this)">All</div>
+      <div class="stt" onclick="swTab('unread',this)">Unread</div>
+      <div class="stt" onclick="swTab('groups',this)">Groups</div>
+    </div>
+    <div class="clist" id="clist"></div>
+    <div class="cmenu" id="cmenu">
+      <div class="cmitem" onclick="openNewGroup()"><em>👥</em> New Group</div>
+      <div class="cmitem" onclick="openNewChat()"><em>💬</em> New Chat</div>
+    </div>
+    <button class="fab" onclick="togCM()" title="New Conversation">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+    </button>
+  </div>
+
+  <!-- CHAT PANEL -->
+  <div class="cp" id="cp">
+    <div class="cpbg" id="cpbg"></div>
+    <div class="welcome" id="wel">
+      <div class="wico">💬</div>
+      <div class="wtitle">SLS Messenger</div>
+      <div class="wsub" id="w-uid-hint">Select a chat or tap ＋ to start a real conversation — messages sync across all devices!</div>
+    </div>
+    <div id="achat">
+      <div class="tbar">
+        <button class="bckbtn" onclick="closeChat()">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+        <div class="tbav" id="tbav"></div>
+        <div class="tbinfo">
+          <div class="tbname" id="tbn">—</div>
+          <div class="tbstat" id="tbs">online</div>
+        </div>
+        <div class="tbacts">
+          <button class="ib" title="Voice Call" onclick="doCall('voice')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 9.91a16 16 0 0 0 6.1 6.1l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+          </button>
+          <button class="ib" title="Video Call" onclick="doCall('video')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
+          </button>
+          <button class="ib" title="Info" onclick="showCI()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/></svg>
+          </button>
+        </div>
+      </div>
+      <div class="msgs" id="msgs"></div>
+      <div class="ibar">
+        <button class="attbtn" onclick="showT('📎','Attach','File sharing coming soon!','i')">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+        </button>
+        <div class="mbox" id="mbox" contenteditable="true" data-ph="Message…" onkeydown="onKey(event)"></div>
+        <button class="ib" style="margin-bottom:3px" onclick="togEmoji()">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M8 13s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>
+        </button>
+        <button class="sbtn" onclick="sendMsg()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- CALL -->
+<div class="cov" id="cov">
+  <div class="ccard">
+    <div class="cav" id="cav"></div>
+    <div class="cname" id="cname">—</div>
+    <div class="cstat" id="cstat">Calling…</div>
+    <div class="ctmr" id="ctmr">0:00</div>
+    <div class="cbtns" id="cbtns">
+      <button class="cbtn mute" onclick="togMute(this)">🎤</button>
+      <button class="cbtn end" onclick="endCall()">📵</button>
+      <button class="cbtn spk" onclick="togSpk(this)">🔊</button>
+    </div>
+    <div id="incbtns" style="display:none">
+      <div style="font-size:13px;color:rgba(255,255,255,.5);margin-bottom:20px">Incoming call…</div>
+      <div class="cbtns">
+        <button class="cbtn end" onclick="decCall()">📵</button>
+        <button class="cbtn ans" onclick="ansCall()">📞</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- STORY VIEWER -->
+<div class="svov" id="svov">
+  <div class="svbars" id="svbars"></div>
+  <div class="svhead">
+    <div class="svinfo">
+      <div class="svuav" id="svav"></div>
+      <div><div class="svuname" id="svname"></div><div class="svutime" id="svtime"></div></div>
+    </div>
+    <button class="svclose" onclick="closeSV()">✕</button>
+  </div>
+  <div class="svbody">
+    <div class="svmain" id="svmain"></div>
+    <div class="svtxtw"><div class="svbub" id="svtxt"></div></div>
+    <div class="svnav l" onclick="svnav(-1)"></div>
+    <div class="svnav r" onclick="svnav(1)"></div>
+  </div>
+  <div class="svrep">
+    <input class="svri" id="svri" placeholder="Reply to story…">
+    <button class="svrsnd" onclick="svReply()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+    </button>
+  </div>
+</div>
+
+<!-- POST STORY -->
+<div class="ov" id="m-story">
+  <div class="modal">
+    <div class="mtitle">📸 Post a Story</div>
+    <div id="sbgs" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px"></div>
+    <textarea class="minp" id="stxt" placeholder="What's on your mind?" rows="3" style="resize:none"></textarea>
+    <div class="mbtns">
+      <button class="mb s" onclick="closeM('m-story')">Cancel</button>
+      <button class="mb p" onclick="postStory()">Post Story 📸</button>
+    </div>
+  </div>
+</div>
+
+<!-- NEW CHAT -->
+<div class="ov" id="m-nc">
+  <div class="modal">
+    <div class="mtitle">💬 New Chat</div>
+    <input class="minp" id="nc-ph" placeholder="Enter +237 number (e.g. 677123456)" inputmode="numeric" oninput="ncSearch(this.value)">
+    <div style="font-size:12px;color:var(--tx3);margin:-5px 0 9px;padding:0 2px">Or pick from known users</div>
+    <div class="cpick" id="nc-list"></div>
+    <div class="mbtns">
+      <button class="mb s" onclick="closeM('m-nc')">Cancel</button>
+      <button class="mb p" onclick="doNC()">Open Chat ✓</button>
+    </div>
+  </div>
+</div>
+
+<!-- NEW GROUP -->
+<div class="ov" id="m-grp">
+  <div class="modal">
+    <div class="mtitle">👥 Create Group</div>
+    <input class="minp" id="gn" placeholder="Group name">
+    <input class="minp" id="gd" placeholder="Description (optional)">
+    <div style="font-size:12px;color:var(--tx3);margin:-5px 0 9px;padding:0 2px">Select members</div>
+    <div class="chips" id="gchips"></div>
+    <div class="cpick" id="g-list"></div>
+    <div class="mbtns">
+      <button class="mb s" onclick="closeM('m-grp')">Cancel</button>
+      <button class="mb p" onclick="doGrp()">Create Group ✓</button>
+    </div>
+  </div>
+</div>
+
+<!-- CONTACT INFO -->
+<div class="ov" id="m-ci">
+  <div class="modal">
+    <div style="text-align:center;padding-bottom:16px;border-bottom:1px solid var(--bdr);margin-bottom:16px">
+      <div id="ci-av" style="width:76px;height:76px;border-radius:50%;font-size:34px;display:flex;align-items:center;justify-content:center;margin:0 auto 12px;color:#fff;font-weight:700"></div>
+      <div id="ci-name" style="font-family:var(--f2);font-size:18px;font-weight:700"></div>
+      <div id="ci-ph" style="font-size:13px;color:var(--tx2);margin-top:3px"></div>
+      <div id="ci-stat" style="font-size:12px;color:var(--acc);margin-top:3px"></div>
+    </div>
+    <div style="display:flex;gap:10px;justify-content:center;margin-bottom:16px">
+      <button class="mb p" style="flex:none;padding:10px 18px" onclick="closeM('m-ci');doCall('voice')">📞 Call</button>
+      <button class="mb s" style="flex:none;padding:10px 18px" onclick="closeM('m-ci');doCall('video')">📹 Video</button>
+      <button class="mb s" style="flex:none;padding:10px 18px" onclick="closeM('m-ci')">✉ Message</button>
+    </div>
+    <div id="ci-mem" style="display:none;font-size:12px;color:var(--tx3);padding:8px 0;border-top:1px solid var(--bdr)"></div>
+    <div class="mbtns"><button class="mb s" onclick="closeM('m-ci')">Close</button></div>
+  </div>
+</div>
+
+<!-- EMOJI PICKER -->
+<div class="epop" id="epop"></div>
+
+<!-- ════════════════════════
+   SETTINGS PANEL
+════════════════════════ -->
+<div class="sp" id="sp">
+  <div id="spmain" style="display:flex;flex-direction:column;flex:1">
+    <div class="sph"><div class="title">⚙️ Settings</div><button class="spcl" onclick="closeSP()">✕</button></div>
+    <div class="sp-body">
+      <div class="sp-prof" onclick="openSub('sp-edit')">
+        <div class="sp-pav" id="sp-pav"></div>
+        <div style="flex:1"><div class="sp-pname" id="sp-pname">—</div><div class="sp-pun" id="sp-pun">—</div><div class="sp-pph" id="sp-pph">—</div></div>
+        <div class="srrgt"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></div>
+      </div>
+      <div class="sec">
+        <div class="sech">Appearance</div>
+        <div class="srow" onclick="togTheme()">
+          <div class="sico" style="background:rgba(52,152,219,.12)">🎨</div>
+          <div class="srtxt"><div class="srtitle">Dark Mode</div><div class="srsub" id="thlab">Off</div></div>
+          <div class="tog" id="thtog" onclick="event.stopPropagation();togTheme()"><div class="togk"></div></div>
+        </div>
+        <div class="srow" onclick="openSub('sp-bg')">
+          <div class="sico" style="background:rgba(0,184,148,.1)">🖼</div>
+          <div class="srtxt"><div class="srtitle">Chat Background</div><div class="srsub">Customize wallpaper</div></div>
+          <div class="srrgt"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></div>
+        </div>
+      </div>
+      <div class="sec">
+        <div class="sech">Notifications</div>
+        <div class="srow"><div class="sico" style="background:rgba(231,76,60,.1)">🔔</div><div class="srtxt"><div class="srtitle">Message Notifications</div><div class="srsub">Sound & badge</div></div><div class="tog on" id="t-notif" onclick="togT('t-notif')"><div class="togk"></div></div></div>
+        <div class="srow"><div class="sico" style="background:rgba(52,152,219,.1)">📳</div><div class="srtxt"><div class="srtitle">Vibrate</div></div><div class="tog on" id="t-vib" onclick="togT('t-vib')"><div class="togk"></div></div></div>
+        <div class="srow"><div class="sico" style="background:rgba(243,156,18,.1)">🔕</div><div class="srtxt"><div class="srtitle">Do Not Disturb</div></div><div class="tog" id="t-dnd" onclick="togT('t-dnd')"><div class="togk"></div></div></div>
+      </div>
+      <div class="sec">
+        <div class="sech">Privacy & Security</div>
+        <div class="srow" onclick="openSub('sp-priv')"><div class="sico" style="background:rgba(0,184,148,.1)">🔒</div><div class="srtxt"><div class="srtitle">Privacy Settings</div><div class="srsub">Last seen, read receipts</div></div><div class="srrgt"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></div></div>
+        <div class="srow"><div class="sico" style="background:rgba(52,152,219,.1)">🔑</div><div class="srtxt"><div class="srtitle">Two-Step Verification</div></div><div class="tog" id="t-2fa" onclick="togT('t-2fa')"><div class="togk"></div></div></div>
+      </div>
+      <div class="sec">
+        <div class="sech">Chats</div>
+        <div class="srow"><div class="sico" style="background:rgba(0,184,148,.1)">✓✓</div><div class="srtxt"><div class="srtitle">Read Receipts</div></div><div class="tog on" id="t-rr" onclick="togT('t-rr')"><div class="togk"></div></div></div>
+        <div class="srow"><div class="sico" style="background:rgba(155,89,182,.12)">⌨️</div><div class="srtxt"><div class="srtitle">Typing Indicator</div></div><div class="tog on" id="t-typ" onclick="togT('t-typ')"><div class="togk"></div></div></div>
+        <div class="srow" onclick="openSub('sp-stor')"><div class="sico" style="background:rgba(243,156,18,.1)">💾</div><div class="srtxt"><div class="srtitle">Storage & Data</div></div><div class="srrgt"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></div></div>
+      </div>
+      <div class="sec">
+        <div class="sech">About</div>
+        <div class="srow" onclick="openSub('sp-about')"><div class="sico" style="background:rgba(0,184,148,.1)">ℹ️</div><div class="srtxt"><div class="srtitle">About SLS</div></div><div class="srrgt"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></div></div>
+        <div class="srow" onclick="doReConfig()"><div class="sico" style="background:rgba(52,152,219,.1)">🔌</div><div class="srtxt"><div class="srtitle">Firebase Config</div><div class="srsub">Change backend connection</div></div></div>
+      </div>
+      <div class="sec">
+        <div class="srow" onclick="doLogout()"><div class="sico" style="background:rgba(231,76,60,.1)">🚪</div><div class="srtxt"><div class="srtitle dtext">Log Out</div></div></div>
+        <div style="padding:12px 16px 16px;font-size:11px;color:var(--tx3);text-align:center">SLS v2.0 · Real-time · Made for Cameroon 🇨🇲</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="spsub" id="sp-edit">
+    <div class="sph"><button class="spcl" onclick="backSub()">←</button><div class="title">✏️ Edit Profile</div></div>
+    <div style="padding:20px 16px;overflow-y:auto">
+      <div style="text-align:center;margin-bottom:20px">
+        <div id="ep-av" style="width:80px;height:80px;border-radius:50%;font-size:34px;display:flex;align-items:center;justify-content:center;margin:0 auto 8px;cursor:pointer;color:#fff;font-weight:700" onclick="cycAv2()"></div>
+        <div style="font-size:12px;color:var(--acc)">Tap to change avatar</div>
+      </div>
+      <label style="font-size:11px;font-weight:600;color:var(--tx3);text-transform:uppercase;letter-spacing:.7px;display:block;margin-bottom:6px">First Name</label>
+      <input class="minp" id="epfn" placeholder="First name">
+      <label style="font-size:11px;font-weight:600;color:var(--tx3);text-transform:uppercase;letter-spacing:.7px;display:block;margin-bottom:6px">Last Name</label>
+      <input class="minp" id="epln" placeholder="Last name">
+      <label style="font-size:11px;font-weight:600;color:var(--tx3);text-transform:uppercase;letter-spacing:.7px;display:block;margin-bottom:6px">Username</label>
+      <input class="minp" id="epun" placeholder="@username">
+      <label style="font-size:11px;font-weight:600;color:var(--tx3);text-transform:uppercase;letter-spacing:.7px;display:block;margin-bottom:6px">Bio</label>
+      <textarea class="minp" id="epbio" placeholder="Write something about yourself…" rows="3" style="resize:none"></textarea>
+      <button class="mb p" style="width:100%;margin-top:4px" onclick="saveProf()">Save Changes ✓</button>
+    </div>
+  </div>
+
+  <div class="spsub" id="sp-priv">
+    <div class="sph"><button class="spcl" onclick="backSub()">←</button><div class="title">🔒 Privacy</div></div>
+    <div style="flex:1;overflow-y:auto">
+      <div class="pi" onclick="showT('👁','Last Seen','Everyone','i')"><div class="pititle">Last Seen & Online</div><div class="pival">Everyone</div><div class="pidesc">Who can see when you were last active</div></div>
+      <div class="pi" onclick="showT('🖼','Profile Photo','Everyone','i')"><div class="pititle">Profile Photo</div><div class="pival">Everyone</div></div>
+      <div class="pi"><div class="pititle">Read Receipts</div><div class="pival" style="color:var(--tx2)">Enabled</div></div>
+      <div class="srow" onclick="showT('🚫','Blocked','No contacts blocked','i')"><div class="srtxt"><div class="srtitle">Blocked Contacts</div><div class="srsub">0 blocked</div></div><div class="srrgt"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></div></div>
+    </div>
+  </div>
+
+  <div class="spsub" id="sp-stor">
+    <div class="sph"><button class="spcl" onclick="backSub()">←</button><div class="title">💾 Storage</div></div>
+    <div style="padding:16px;overflow-y:auto">
+      <div style="background:var(--sur2);border-radius:14px;padding:16px;margin-bottom:14px">
+        <div style="font-size:13px;color:var(--tx2);margin-bottom:8px">Messages stored in Firebase</div>
+        <div style="font-size:28px;font-weight:700;font-family:var(--f2)" id="msg-count">—</div>
+        <div style="font-size:11px;color:var(--tx3);margin-top:5px">real-time messages</div>
+      </div>
+      <div class="srow" onclick="showT('🗑','Cache Cleared','Local cache cleared!','s')"><div class="sico" style="background:rgba(231,76,60,.1)">🗑</div><div class="srtxt"><div class="srtitle dtext">Clear Local Cache</div></div></div>
+    </div>
+  </div>
+
+  <div class="spsub" id="sp-bg">
+    <div class="sph"><button class="spcl" onclick="backSub()">←</button><div class="title">🖼 Chat Background</div></div>
+    <div style="padding:16px;display:flex;flex-wrap:wrap;gap:10px">
+      <div onclick="setBG('')" style="width:80px;height:80px;border-radius:14px;background:var(--bg);border:2px solid var(--acc);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--tx3)">Default</div>
+      <div onclick="setBG('b1')" style="width:80px;height:80px;border-radius:14px;background:linear-gradient(135deg,#a8edea,#fed6e3);cursor:pointer"></div>
+      <div onclick="setBG('b2')" style="width:80px;height:80px;border-radius:14px;background:linear-gradient(135deg,#0d1117,#1a2332);cursor:pointer"></div>
+      <div onclick="setBG('b3')" style="width:80px;height:80px;border-radius:14px;background:linear-gradient(135deg,#e0f7fa,#b2ebf2);cursor:pointer"></div>
+      <div onclick="setBG('b4')" style="width:80px;height:80px;border-radius:14px;background:linear-gradient(135deg,#fce4ec,#f8bbd9);cursor:pointer"></div>
+    </div>
+  </div>
+
+  <div class="spsub" id="sp-about">
+    <div class="sph"><button class="spcl" onclick="backSub()">←</button><div class="title">ℹ️ About</div></div>
+    <div style="padding:32px;text-align:center">
+      <div style="width:76px;height:76px;background:linear-gradient(135deg,#00b894,#00a8ff);border-radius:22px;display:flex;align-items:center;justify-content:center;font-family:var(--f2);font-size:26px;font-weight:800;color:#fff;margin:0 auto 14px;box-shadow:0 8px 24px rgba(0,184,148,.35)">SLS</div>
+      <div style="font-family:var(--f2);font-size:20px;font-weight:700;margin-bottom:4px">SLS Messenger</div>
+      <div style="font-size:13px;color:var(--tx2);margin-bottom:16px">Stay. Link. Share.</div>
+      <div style="display:inline-block;background:var(--accL);color:var(--acc);border-radius:8px;padding:3px 10px;font-size:11px;font-weight:700;margin-bottom:12px">Version 2.0 · Firebase Backend</div>
+      <div style="font-size:13px;color:var(--tx2);line-height:1.7">Built for Cameroon 🇨🇲<br>Real-time messaging via Firebase Firestore<br>Messages sync across all devices instantly</div>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast">
+  <span class="tico" id="tio"></span>
+  <div><div class="ttitle" id="ttl"></div><div class="tbody" id="tbd"></div></div>
+</div>
+
+<!-- ════════════════════════════════════════════
+     JAVASCRIPT  —  Firebase Backend Integration
+════════════════════════════════════════════ -->
+<script>
+'use strict';
+
+/* ──────────────────────────────────
+   APP STATE
+────────────────────────────────── */
+const S = {
+  firebase: null, auth: null, db: null, rtdb: null,
+  user: null,          // local profile
+  fbUser: null,        // Firebase anonymous user
+  ach: null,           // active chat ID
+  chatData: {},        // id -> chat object
+  msgsListener: null,  // active Firestore listener
+  chatsListener: null,
+  theme: 'light',
+  tab: 'all',
+  grpSel: [], ncSel: null,
+  avIdx: 0, avcIdx: 0,
+  stories: [],
+  svi: 0, svTmr: null,
+  emojiOn: false,
+  callOn: false, callSec: 0, callTmr: null,
+  bgMap: {
+    b1:'linear-gradient(135deg,#a8edea,#fed6e3)',
+    b2:'linear-gradient(135deg,#0d1117,#1a2332)',
+    b3:'linear-gradient(135deg,#e0f7fa,#b2ebf2)',
+    b4:'linear-gradient(135deg,#fce4ec,#f8bbd9)',
+  }
+};
+const AVE = ['😊','😎','🦁','🐯','🦊','🦋','🌟','🚀','🎯','🎸','🏄','🧠'];
+const AVC = ['a0','a1','a2','a3','a4','a5','a6','a7'];
+const EMO = ['😀','😂','😍','🥰','😎','🤩','😢','😡','🤔','😴','🥳','🎉','👍','👎','❤️','🔥','✅','💯','🙏','🚀','💬','📞','🌟','🎵','🍔','☕'];
+const SBG = ['🌅','🌃','🎆','🌺','🍔','🎵','🏖️','❄️','🌈','🦁'];
+let storySel = '🌅';
+
+/* ──────────────────────────────────
+   FIREBASE INITIALISE
+────────────────────────────────── */
+function initFirebase() {
+  const get = id => document.getElementById(id).value.trim();
+  const cfg = {
+    apiKey:            get('cfg-apiKey'),
+    authDomain:        get('cfg-authDomain'),
+    projectId:         get('cfg-projectId'),
+    storageBucket:     get('cfg-storageBucket'),
+    messagingSenderId: get('cfg-messagingSenderId'),
+    appId:             get('cfg-appId'),
+    databaseURL:       get('cfg-databaseURL'),
+  };
+  const err = document.getElementById('setup-err');
+  if (!cfg.apiKey || !cfg.projectId) {
+    err.textContent = '⚠ Please fill in at least API Key and Project ID.';
+    err.style.display = 'block'; return;
+  }
+  err.style.display = 'none';
+  try {
+    // Avoid re-initialising if already done
+    if (firebase.apps.length) firebase.apps[0].delete();
+    firebase.initializeApp(cfg);
+    S.firebase = firebase;
+    S.auth = firebase.auth();
+    S.db   = firebase.firestore();
+    S.rtdb = firebase.database();
+    localStorage.setItem('sls-firebase-cfg', JSON.stringify(cfg));
+    // Hide setup, show loading
+    document.getElementById('setup-screen').style.opacity = '0';
+    document.getElementById('setup-screen').style.pointerEvents = 'none';
+    setTimeout(() => document.getElementById('setup-screen').style.display = 'none', 400);
+    showLoading('Signing in…');
+    signInAnon();
+  } catch(e) {
+    err.textContent = '❌ Firebase error: ' + e.message;
+    err.style.display = 'block';
+  }
+}
+
+function signInAnon() {
+  S.auth.signInAnonymously()
+    .then(cred => {
+      S.fbUser = cred.user;
+      hideLoading();
+      // Check if user profile exists in Firestore
+      return S.db.collection('users').doc(S.fbUser.uid).get();
+    })
+    .then(doc => {
+      if (doc.exists) {
+        // Returning user — load profile and go straight to app
+        S.user = doc.data();
+        bootApp();
+      } else {
+        // New user — show registration
+        document.getElementById('auth').classList.add('on');
+      }
+    })
+    .catch(e => {
+      hideLoading();
+      showT('❌','Auth Error', e.message, 'e');
+      // Show setup screen again
+      document.getElementById('setup-screen').style.display = 'flex';
+      document.getElementById('setup-screen').style.opacity = '1';
+      document.getElementById('setup-screen').style.pointerEvents = 'all';
+    });
+}
+
+/* ──────────────────────────────────
+   AUTO-RESTORE FIREBASE CONFIG
+────────────────────────────────── */
+window.addEventListener('load', () => {
+  const saved = localStorage.getItem('sls-firebase-cfg');
+  if (saved) {
+    try {
+      const cfg = JSON.parse(saved);
+      // Pre-fill the form
+      Object.keys(cfg).forEach(k => {
+        const el = document.getElementById('cfg-' + k);
+        if (el) el.value = cfg[k];
+      });
+      // Auto-connect
+      initFirebase();
+    } catch(e) {}
+  }
+  buildEmoji();
+});
+
+/* ──────────────────────────────────
+   LOADING
+────────────────────────────────── */
+function showLoading(txt) {
+  document.getElementById('loading-txt').textContent = txt || 'Loading…';
+  document.getElementById('loading').classList.add('on');
+}
+function hideLoading() {
+  document.getElementById('loading').classList.remove('on');
+}
+
+/* ──────────────────────────────────
+   REGISTRATION
+────────────────────────────────── */
+function auth1() {
+  const v = document.getElementById('iph').value.replace(/\s/g,'');
+  if (!/^6\d{7,8}$/.test(v)) {
+    showErr('aerr1','Enter a valid number starting with 6'); return;
+  }
+  S.phone = v;
+  document.getElementById('otpph').textContent = '+237 ' + v;
+  showStep('s2');
+}
+function oi(el, i) {
+  if (el.value.length===1 && i<5) document.querySelectorAll('.od')[i+1].focus();
+  if (el.value.length===1 && i===5) setTimeout(auth2, 300);
+}
+function auth2() {
+  const v = [...document.querySelectorAll('.od')].map(d=>d.value).join('');
+  if (v.length < 6) { showErr('aerr2','Enter all 6 digits'); return; }
+  // In production: verify OTP with SMS gateway here
+  showStep('s3');
+}
+function cycAv() {
+  S.avIdx = (S.avIdx+1) % AVE.length;
+  S.avcIdx = (S.avcIdx+1) % AVC.length;
+  document.getElementById('avem').textContent = AVE[S.avIdx];
+  document.getElementById('avp').className = 'avpick ' + AVC[S.avcIdx];
+}
+async function auth3() {
+  const fn = document.getElementById('ifn').value.trim();
+  if (!fn) { showErr('aerr3','Enter your first name'); return; }
+  const btn = document.getElementById('btn-finish');
+  btn.disabled = true; btn.textContent = 'Creating account…';
+  const name = fn + (document.getElementById('iln').value.trim() ? ' ' + document.getElementById('iln').value.trim() : '');
+  const username = document.getElementById('iun').value.trim() || '@' + fn.toLowerCase().replace(/\s/g,'');
+  S.user = {
+    uid: S.fbUser.uid,
+    name, username,
+    phone: '+237 ' + S.phone,
+    av: AVE[S.avIdx],
+    cls: AVC[S.avcIdx],
+    bio: '',
+    createdAt: Date.now()
+  };
+  try {
+    await S.db.collection('users').doc(S.fbUser.uid).set(S.user);
+    btn.disabled = false; btn.textContent = 'Create Account →';
+    document.getElementById('auth').classList.remove('on');
+    document.getElementById('auth').style.display = 'none';
+    bootApp();
+  } catch(e) {
+    btn.disabled = false; btn.textContent = 'Create Account →';
+    showErr('aerr3', 'Error: ' + e.message);
+  }
+}
+function showStep(id) {
+  document.querySelectorAll('.astep').forEach(s=>s.classList.remove('on'));
+  document.getElementById(id).classList.add('on');
+}
+function showErr(id, msg) {
+  const el = document.getElementById(id);
+  el.textContent = msg; el.style.display = 'block';
+  setTimeout(() => el.style.display = 'none', 3500);
+}
+
+/* ──────────────────────────────────
+   BOOT APP
+────────────────────────────────── */
+function bootApp() {
+  fillSP();
+  renderStrip();
+  subscribeToChats();
+  setOnlinePresence();
+  showConnStatus('🟢 Connected · Messages sync in real-time', 'ok');
+  document.getElementById('w-uid-hint').textContent =
+    'Your ID: ' + S.user.phone + ' · Share it so others can message you!';
+  document.getElementById('app').classList.add('vis');
+  showT('🎉','Welcome!','Hello ' + S.user.name + '! Your messages sync across all devices.', 's');
+  buildEmoji();
+}
+
+/* ──────────────────────────────────
+   ONLINE PRESENCE (Realtime Database)
+────────────────────────────────── */
+function setOnlinePresence() {
+  if (!S.rtdb) return;
+  const ref = S.rtdb.ref('presence/' + S.fbUser.uid);
+  ref.set({ online: true, name: S.user.name, lastSeen: Date.now() });
+  ref.onDisconnect().set({ online: false, lastSeen: firebase.database.ServerValue.TIMESTAMP });
+  // Monitor connection
+  S.rtdb.ref('.info/connected').on('value', snap => {
+    const connected = snap.val();
+    if (connected) {
+      showConnStatus('🟢 Connected', 'ok');
+      ref.set({ online: true, name: S.user.name, lastSeen: Date.now() });
+    } else {
+      showConnStatus('🔴 Reconnecting…', 'err');
+    }
+  });
+}
+
+function showConnStatus(msg, type) {
+  const el = document.getElementById('conn-status');
+  el.textContent = msg; el.className = 'conn-status show ' + type;
+  if (type === 'ok') setTimeout(() => el.classList.remove('show'), 3000);
+}
+
+/* ──────────────────────────────────
+   FIRESTORE — CHAT LIST SUBSCRIPTION
+────────────────────────────────── */
+function subscribeToChats() {
+  if (S.chatsListener) S.chatsListener();
+  // Listen for chats where current user is a member
+  S.chatsListener = S.db.collection('chats')
+    .where('members', 'array-contains', S.fbUser.uid)
+    .orderBy('updatedAt', 'desc')
+    .onSnapshot(snapshot => {
+      snapshot.docChanges().forEach(change => {
+        const data = { id: change.doc.id, ...change.doc.data() };
+        if (change.type === 'removed') {
+          delete S.chatData[data.id];
+        } else {
+          // Count unread
+          const prev = S.chatData[data.id];
+          const wasUnread = prev ? prev.unread : 0;
+          data.unread = (data.unread || {})[S.fbUser.uid] || 0;
+          S.chatData[data.id] = data;
+          // Toast for new messages from others
+          if (data.unread > wasUnread && S.ach !== data.id) {
+            showT(data.avatarEmoji || '💬', data.name, data.lastMsg || 'New message', 'm');
+          }
+        }
+      });
+      renderCL(document.getElementById('sinp').value);
+    }, err => {
+      console.error('Chats listener error:', err);
+    });
+}
+
+/* ──────────────────────────────────
+   OPEN / CLOSE CHAT
+────────────────────────────────── */
+async function openChat(id) {
+  S.ach = id;
+  const c = S.chatData[id]; if (!c) return;
+
+  // Mark as read in Firestore
+  S.db.collection('chats').doc(id).update({
+    ['unread.' + S.fbUser.uid]: 0
+  }).catch(()=>{});
+
+  document.getElementById('wel').style.display = 'none';
+  const ac = document.getElementById('achat'); ac.style.display = 'flex';
+  const av = document.getElementById('tbav');
+  av.textContent = c.avatarEmoji || '💬';
+  av.className = 'tbav ' + (c.avatarCls || 'a0');
+  document.getElementById('tbn').textContent = c.name;
+  const ts = document.getElementById('tbs');
+  ts.textContent = c.isGroup ? (c.members?.length || 2) + ' members' : (c.otherOnline ? 'online' : 'last seen recently');
+  ts.className = 'tbstat' + (c.otherOnline ? '' : ' away');
+  renderCL();
+  if (window.innerWidth <= 720) document.getElementById('cp').classList.add('mo');
+
+  // Subscribe to messages
+  if (S.msgsListener) S.msgsListener();
+  document.getElementById('msgs').innerHTML = '<div style="text-align:center;color:var(--tx3);font-size:13px;padding:20px">Loading messages…</div>';
+  S.msgsListener = S.db.collection('chats').doc(id).collection('messages')
+    .orderBy('ts', 'asc')
+    .onSnapshot(snap => {
+      renderMsgsFromSnap(snap);
+    });
+}
+
+function closeChat() {
+  document.getElementById('cp').classList.remove('mo');
+  S.ach = null;
+  if (S.msgsListener) { S.msgsListener(); S.msgsListener = null; }
+}
+
+/* ──────────────────────────────────
+   RENDER MESSAGES
+────────────────────────────────── */
+function renderMsgsFromSnap(snap) {
+  const w = document.getElementById('msgs');
+  if (snap.empty) {
+    w.innerHTML = '<div style="text-align:center;color:var(--tx3);font-size:13px;margin-top:24px">No messages yet. Say hello! 👋</div>';
+    return;
+  }
+  let html = '<div class="dsep">Today</div>';
+  let lastDate = '';
+  snap.forEach((doc, i) => {
+    const m = doc.data();
+    const isMe = m.senderId === S.fbUser.uid;
+    const d = m.ts ? new Date(m.ts.toMillis ? m.ts.toMillis() : m.ts).toLocaleDateString() : '';
+    if (d && d !== lastDate) {
+      if (lastDate) html += `<div class="dsep">${d}</div>`;
+      lastDate = d;
+    }
+    const timeStr = m.ts ? fmtTime(m.ts) : '';
+    html += `<div class="mr ${isMe?'out':'in'} fu" style="animation-delay:${Math.min(i*.015,.3)}s">
+      <div class="bub">
+        ${!isMe && (S.chatData[S.ach]?.isGroup) ? `<div style="font-size:11px;font-weight:700;color:var(--acc);margin-bottom:2px">${m.senderName||'User'}</div>` : ''}
+        ${escHtml(m.text)}
+        <div class="bt">${timeStr}${isMe?`<span class="bchk${m.read?' rd':''}">✓✓</span>`:''}</div>
+      </div>
+    </div>`;
+  });
+  w.innerHTML = html;
+  w.scrollTop = w.scrollHeight;
+  // Update message count in settings
+  document.getElementById('msg-count').textContent = snap.size;
+}
+
+function fmtTime(ts) {
+  try {
+    const d = ts.toDate ? ts.toDate() : new Date(ts);
+    const h = d.getHours() % 12 || 12, m = d.getMinutes(), ap = d.getHours() >= 12 ? 'PM' : 'AM';
+    return h + ':' + (m<10?'0':'') + m + ' ' + ap;
+  } catch { return ''; }
+}
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
+}
+
+/* ──────────────────────────────────
+   SEND MESSAGE  (Firestore)
+────────────────────────────────── */
+async function sendMsg() {
+  const b = document.getElementById('mbox');
+  const txt = b.textContent.trim();
+  if (!txt || !S.ach) return;
+  b.textContent = '';
+  const c = S.chatData[S.ach]; if (!c) return;
+
+  const msg = {
+    text: txt,
+    senderId: S.fbUser.uid,
+    senderName: S.user.name,
+    ts: firebase.firestore.FieldValue.serverTimestamp(),
+    read: false,
+  };
+
+  try {
+    // Add message to sub-collection
+    await S.db.collection('chats').doc(S.ach).collection('messages').add(msg);
+
+    // Build unread map for all OTHER members
+    const unreadUpdate = {};
+    (c.members || []).forEach(uid => {
+      if (uid !== S.fbUser.uid) unreadUpdate['unread.' + uid] = firebase.firestore.FieldValue.increment(1);
+    });
+
+    // Update chat metadata
+    await S.db.collection('chats').doc(S.ach).update({
+      lastMsg: txt.length > 60 ? txt.slice(0,60) + '…' : txt,
+      lastMsgSender: S.user.name,
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+      ...unreadUpdate,
+    });
+  } catch(e) {
+    showT('❌','Send Error', e.message, 'e');
+    b.textContent = txt; // restore
+  }
+}
+
+function onKey(e) { if (e.key==='Enter' && !e.shiftKey) { e.preventDefault(); sendMsg(); } }
+
+/* ──────────────────────────────────
+   RENDER CHAT LIST
+────────────────────────────────── */
+function renderCL(f = '') {
+  let cs = Object.values(S.chatData);
+  cs.sort((a,b) => (b.updatedAt?.seconds||0) - (a.updatedAt?.seconds||0));
+  if (S.tab === 'unread') cs = cs.filter(c => c.unread > 0);
+  if (S.tab === 'groups') cs = cs.filter(c => c.isGroup);
+  if (f) cs = cs.filter(c => c.name?.toLowerCase().includes(f.toLowerCase()));
+  const cl = document.getElementById('clist');
+  if (!cs.length) {
+    cl.innerHTML = `<div style="text-align:center;padding:30px;font-size:13px;color:var(--tx3)">${f?'No chats found':'No chats yet — tap ＋ to start one!'}</div>`;
+    return;
+  }
+  cl.innerHTML = cs.map(c => `
+    <div class="ci${S.ach===c.id?' act':''}" onclick="openChat('${c.id}')">
+      <div class="ciav ${c.avatarCls||'a0'}" style="position:relative">
+        ${c.avatarEmoji||'💬'}
+        ${c.otherOnline?'<div class="odot"></div>':''}
+      </div>
+      <div class="cibody">
+        <div class="citop">
+          <span class="ciname">${escHtml(c.name||'Chat')}${c.isGroup?'<span class="gtag">group</span>':''}</span>
+          <span class="citime">${c.updatedAt ? fmtTime(c.updatedAt) : ''}</span>
+        </div>
+        <div class="cibot">
+          <span class="ciprev">${escHtml((c.lastMsg||'Say hello 👋').slice(0,45))}</span>
+          ${c.unread>0?`<span class="badge">${c.unread}</span>`:''}
+        </div>
+      </div>
+    </div>`).join('');
+}
+function filterC(v) { renderCL(v); }
+function swTab(t, el) {
+  S.tab = t;
+  document.querySelectorAll('.stt').forEach(s=>s.classList.remove('on'));
+  el.classList.add('on');
+  renderCL(document.getElementById('sinp').value);
+}
+
+/* ──────────────────────────────────
+   NEW CHAT  (Firestore)
+────────────────────────────────── */
+function openNewChat() {
+  closeCM(); S.ncSel = null;
+  document.getElementById('nc-ph').value = '';
+  // List all registered users except self
+  S.db.collection('users').limit(30).get().then(snap => {
+    const cl = document.getElementById('nc-list');
+    const users = [];
+    snap.forEach(d => { if (d.id !== S.fbUser.uid) users.push({id:d.id,...d.data()}); });
+    if (!users.length) {
+      cl.innerHTML = '<div style="padding:14px;font-size:13px;color:var(--tx3);text-align:center">No other users registered yet.<br>Share your number so friends can join!</div>';
+      return;
+    }
+    cl.innerHTML = users.map(u => `
+      <div class="cpitem" id="nci-${u.id}" onclick="ncSel(this,'${u.id}')">
+        <div class="cpchk" id="nck-${u.id}"></div>
+        <div class="cpav ${u.cls||'a0'}">${u.av||'👤'}</div>
+        <div><div class="cpname">${escHtml(u.name)}</div><div class="cpsub">${u.phone}</div></div>
+      </div>`).join('');
+  });
+  openM('m-nc');
+}
+function ncSearch(v) {
+  document.querySelectorAll('#nc-list .cpitem').forEach(it => {
+    const n = it.querySelector('.cpname').textContent.toLowerCase();
+    const p = it.querySelector('.cpsub').textContent;
+    it.style.display = (n.includes(v.toLowerCase()) || p.includes(v)) ? 'flex' : 'none';
+  });
+}
+function ncSel(el, id) {
+  document.querySelectorAll('#nc-list .cpitem').forEach(i => { i.classList.remove('sel'); const k=i.querySelector('.cpchk'); if(k) k.textContent=''; });
+  el.classList.add('sel');
+  const k = document.getElementById('nck-' + id); if (k) k.textContent = '✓';
+  S.ncSel = id;
+}
+async function doNC() {
+  const ph = document.getElementById('nc-ph').value.trim();
+  if (S.ncSel) {
+    await openOrCreateChat(S.ncSel);
+    closeM('m-nc');
+  } else if (ph) {
+    // Search user by phone number
+    const snap = await S.db.collection('users').where('phone', '==', '+237 ' + ph).limit(1).get();
+    if (snap.empty) {
+      showT('⚠️','Not Found','No user with +237 ' + ph + ' is registered yet.','e'); return;
+    }
+    const other = snap.docs[0];
+    await openOrCreateChat(other.id, other.data());
+    closeM('m-nc');
+  } else {
+    showT('⚠️','Select Contact','Pick a user or enter a +237 number','e');
+  }
+}
+
+async function openOrCreateChat(otherUid, otherData) {
+  if (!otherData) {
+    const doc = await S.db.collection('users').doc(otherUid).get();
+    otherData = doc.exists ? doc.data() : { name: 'Unknown', av: '👤', cls: 'a6' };
+  }
+  // Check if DM already exists
+  const chatId = [S.fbUser.uid, otherUid].sort().join('_');
+  const ref = S.db.collection('chats').doc(chatId);
+  const existing = await ref.get();
+  if (!existing.exists) {
+    await ref.set({
+      id: chatId,
+      isGroup: false,
+      name: otherData.name,
+      avatarEmoji: otherData.av || '👤',
+      avatarCls: otherData.cls || 'a0',
+      members: [S.fbUser.uid, otherUid],
+      lastMsg: '',
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+      unread: { [S.fbUser.uid]: 0, [otherUid]: 0 },
+    });
+    // Also store reverse view for the other user (Firestore array-contains handles it)
+  }
+  // Override name for local display to show the other person's name
+  setTimeout(() => {
+    if (S.chatData[chatId]) {
+      S.chatData[chatId].name = otherData.name;
+    }
+    openChat(chatId);
+  }, 600);
+}
+
+/* ──────────────────────────────────
+   NEW GROUP  (Firestore)
+────────────────────────────────── */
+function openNewGroup() {
+  closeCM(); S.grpSel = [];
+  document.getElementById('gn').value = '';
+  document.getElementById('gd').value = '';
+  document.getElementById('gchips').innerHTML = '';
+  S.db.collection('users').limit(30).get().then(snap => {
+    const users = [];
+    snap.forEach(d => { if (d.id !== S.fbUser.uid) users.push({id:d.id,...d.data()}); });
+    document.getElementById('g-list').innerHTML = users.length
+      ? users.map(u=>`<div class="cpitem" id="gci-${u.id}" onclick="gTog(this,'${u.id}','${escHtml(u.name)}')">
+          <div class="cpchk" id="gck-${u.id}"></div>
+          <div class="cpav ${u.cls||'a0'}">${u.av||'👤'}</div>
+          <div><div class="cpname">${escHtml(u.name)}</div><div class="cpsub">${u.phone}</div></div>
+        </div>`).join('')
+      : '<div style="padding:14px;font-size:13px;color:var(--tx3);text-align:center">No other registered users found yet.</div>';
+  });
+  openM('m-grp');
+}
+function gTog(el, id, name) {
+  const chk = document.getElementById('gck-' + id);
+  const i = S.grpSel.indexOf(id);
+  if (i === -1) { S.grpSel.push(id); el.classList.add('sel'); chk.textContent = '✓'; }
+  else { S.grpSel.splice(i,1); el.classList.remove('sel'); chk.textContent = ''; }
+  renderGChips();
+}
+function renderGChips() {
+  document.getElementById('gchips').innerHTML = S.grpSel.map(id => {
+    const el = document.getElementById('gci-' + id);
+    const name = el ? el.querySelector('.cpname').textContent : id;
+    return `<div class="chip">👤 ${escHtml(name)}<span class="x" onclick="gRem('${id}')">×</span></div>`;
+  }).join('');
+}
+function gRem(id) {
+  S.grpSel = S.grpSel.filter(x=>x!==id);
+  const el = document.getElementById('gci-'+id); if(el) el.classList.remove('sel');
+  const ck = document.getElementById('gck-'+id); if(ck) ck.textContent = '';
+  renderGChips();
+}
+async function doGrp() {
+  const gn = document.getElementById('gn').value.trim();
+  if (!gn) { showT('⚠️','Group Name','Enter a name for the group','e'); return; }
+  if (S.grpSel.length < 1) { showT('⚠️','Add Members','Select at least 1 member','e'); return; }
+  const members = [S.fbUser.uid, ...S.grpSel];
+  const unread = {};
+  members.forEach(uid => unread[uid] = 0);
+  const chatRef = S.db.collection('chats').doc();
+  try {
+    await chatRef.set({
+      id: chatRef.id,
+      isGroup: true,
+      name: gn,
+      description: document.getElementById('gd').value.trim(),
+      avatarEmoji: '👥',
+      avatarCls: 'a0',
+      members,
+      createdBy: S.fbUser.uid,
+      lastMsg: 'Group created',
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+      unread,
+    });
+    await chatRef.collection('messages').add({
+      text: '👥 Group "' + gn + '" was created by ' + S.user.name,
+      senderId: 'system',
+      senderName: 'SLS',
+      ts: firebase.firestore.FieldValue.serverTimestamp(),
+      read: true,
+    });
+    closeM('m-grp');
+    setTimeout(() => openChat(chatRef.id), 800);
+    showT('👥','Group Created','"' + gn + '" with ' + members.length + ' members', 's');
+  } catch(e) { showT('❌','Error', e.message, 'e'); }
+}
+
+/* ──────────────────────────────────
+   CONTACT INFO
+────────────────────────────────── */
+function showCI() {
+  const c = S.chatData[S.ach]; if (!c) return;
+  const av = document.getElementById('ci-av');
+  av.textContent = c.avatarEmoji || '💬'; av.className = c.avatarCls || 'a0';
+  av.style.cssText = 'width:76px;height:76px;border-radius:50%;font-size:34px;display:flex;align-items:center;justify-content:center;margin:0 auto 12px;color:#fff;font-weight:700;';
+  document.getElementById('ci-name').textContent = c.name;
+  document.getElementById('ci-ph').textContent = c.isGroup ? 'Group · ' + (c.members?.length||0) + ' members' : '';
+  document.getElementById('ci-stat').textContent = c.description || (c.isGroup ? 'Group chat' : 'Direct message');
+  const cm = document.getElementById('ci-mem');
+  if (c.isGroup && c.members) { cm.style.display = 'block'; cm.innerHTML = '<b style="color:var(--tx2)">Members: ' + c.members.length + '</b>'; }
+  else cm.style.display = 'none';
+  openM('m-ci');
+}
+
+/* ──────────────────────────────────
+   STORIES  (Firestore)
+────────────────────────────────── */
+async function loadStories() {
+  try {
+    const snap = await S.db.collection('stories')
+      .where('expiresAt', '>', firebase.firestore.Timestamp.now())
+      .orderBy('expiresAt', 'desc')
+      .limit(20).get();
+    S.stories = [];
+    snap.forEach(doc => S.stories.push({id: doc.id, ...doc.data()}));
+    renderStrip();
+  } catch(e) {
+    // stories collection may not exist yet — that's fine
+    renderStrip();
+  }
+}
+function renderStrip() {
+  let h = `<div class="sdot" onclick="showStoryModal()">
+    <div class="sring add" style="width:54px;height:54px">
+      <span style="font-size:22px">${S.user?.av||'😊'}</span>
+      <div class="addico">+</div>
+    </div><span class="sname">My Story</span></div>`;
+  S.stories.forEach((s,i) => {
+    h += `<div class="sdot" onclick="vSV(${i})">
+      <div class="sring${s.seen?' seen':''}"><div class="sinner ${s.avatarCls||'a0'}">${s.avatarEmoji||'😊'}</div></div>
+      <span class="sname">${escHtml((s.authorName||'User').split(' ')[0])}</span></div>`;
+  });
+  document.getElementById('strip').innerHTML = h;
+}
+function vSV(i) { S.svi = i; openSV(); }
+function openSV() {
+  const s = S.stories[S.svi]; if (!s) return;
+  const ov = document.getElementById('svov'); ov.classList.add('on');
+  document.getElementById('svav').textContent = s.avatarEmoji || '😊';
+  document.getElementById('svav').className = 'svuav ' + (s.avatarCls||'a0');
+  document.getElementById('svname').textContent = s.authorName || 'User';
+  document.getElementById('svtime').textContent = s.ts ? fmtTime(s.ts) : '';
+  document.getElementById('svmain').textContent = s.bg || '🌅';
+  document.getElementById('svtxt').textContent = s.text || '';
+  s.seen = true;
+  const bars = document.getElementById('svbars');
+  bars.innerHTML = S.stories.map((_,i) => `<div class="svseg"><div class="svfill${i<S.svi?' done':''}"></div></div>`).join('');
+  if (S.svTmr) clearInterval(S.svTmr);
+  const fill = bars.querySelectorAll('.svfill')[S.svi];
+  if (fill) { fill.style.width='0'; fill.style.transition='width 5.5s linear'; setTimeout(()=>fill.style.width='100%',50); }
+  S.svTmr = setInterval(() => svnav(1), 5500);
+}
+function svnav(d) {
+  if (S.svTmr) clearInterval(S.svTmr);
+  S.svi += d;
+  if (S.svi < 0 || S.svi >= S.stories.length) { closeSV(); return; }
+  openSV();
+}
+function closeSV() {
+  document.getElementById('svov').classList.remove('on');
+  if (S.svTmr) clearInterval(S.svTmr);
+}
+async function svReply() {
+  const txt = document.getElementById('svri').value.trim(); if (!txt) return;
+  const s = S.stories[S.svi];
+  // Find or create DM with story author
+  if (s.authorUid && s.authorUid !== S.fbUser.uid) {
+    await openOrCreateChat(s.authorUid, { name: s.authorName, av: s.avatarEmoji, cls: s.avatarCls });
+    setTimeout(async () => {
+      const b = document.getElementById('mbox');
+      b.textContent = '↩️ Replied to story "' + (s.text||'').slice(0,28) + '…": ' + txt;
+      await sendMsg();
+    }, 800);
+  }
+  document.getElementById('svri').value = '';
+  closeSV();
+  showT('↩️','Reply Sent','Sent to ' + s.authorName, 's');
+}
+function showStoryModal() {
+  const c = document.getElementById('sbgs');
+  c.innerHTML = SBG.map(b=>`<div onclick="selSBG(this,'${b}')" style="width:42px;height:42px;border-radius:10px;background:var(--sur2);border:2px solid transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:22px;transition:border-color .15s,transform .1s" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">${b}</div>`).join('');
+  openM('m-story');
+}
+function selSBG(el, b) {
+  document.querySelectorAll('#sbgs div').forEach(d=>d.style.borderColor='transparent');
+  el.style.borderColor = 'var(--acc)'; storySel = b;
+}
+async function postStory() {
+  const txt = document.getElementById('stxt').value.trim();
+  try {
+    const expiresAt = firebase.firestore.Timestamp.fromMillis(Date.now() + 24*60*60*1000); // 24h
+    await S.db.collection('stories').add({
+      authorUid: S.fbUser.uid,
+      authorName: S.user.name,
+      avatarEmoji: S.user.av,
+      avatarCls: S.user.cls,
+      bg: storySel,
+      text: txt || 'Check out my story!',
+      ts: firebase.firestore.FieldValue.serverTimestamp(),
+      expiresAt,
+    });
+    closeM('m-story');
+    document.getElementById('stxt').value = '';
+    loadStories();
+    showT('📸','Story Posted!','Visible to all SLS users for 24h', 's');
+  } catch(e) { showT('❌','Error', e.message, 'e'); }
+}
+
+/* ──────────────────────────────────
+   CALLS (signalling via Firestore)
+────────────────────────────────── */
+function doCall(type) {
+  const c = S.chatData[S.ach]; if (!c) return;
+  S.callOn = true; S.callSec = 0;
+  const ov = document.getElementById('cov'); ov.classList.add('on');
+  const av = document.getElementById('cav');
+  av.textContent = c.avatarEmoji || '💬'; av.className = 'cav ' + (c.avatarCls||'a0');
+  document.getElementById('cname').textContent = c.name;
+  document.getElementById('cstat').textContent = (type==='video'?'📹 Video':'📞 Voice') + ' call · Calling…';
+  document.getElementById('ctmr').style.display = 'none';
+  document.getElementById('cbtns').style.display = 'flex';
+  document.getElementById('incbtns').style.display = 'none';
+  // Store call signal in Firestore (other device listens)
+  S.db.collection('calls').add({
+    from: S.fbUser.uid,
+    fromName: S.user.name,
+    to: c.members?.find(uid => uid !== S.fbUser.uid) || '',
+    chatId: S.ach,
+    type,
+    status: 'ringing',
+    ts: firebase.firestore.FieldValue.serverTimestamp(),
+  }).then(ref => { S.currentCallRef = ref; });
+  setTimeout(() => {
+    if (!S.callOn) return;
+    document.getElementById('cstat').textContent = (type==='video'?'📹 Video':'📞 Voice') + ' call connected';
+    document.getElementById('ctmr').style.display = 'block';
+    S.callTmr = setInterval(() => {
+      S.callSec++;
+      const m = Math.floor(S.callSec/60), s = S.callSec%60;
+      document.getElementById('ctmr').textContent = m + ':' + (s<10?'0':'') + s;
+    }, 1000);
+  }, 3200);
+}
+function endCall() {
+  S.callOn = false; if (S.callTmr) clearInterval(S.callTmr);
+  document.getElementById('cov').classList.remove('on');
+  if (S.currentCallRef) S.currentCallRef.update({ status: 'ended' }).catch(()=>{});
+  if (S.callSec > 0 && S.ach) {
+    const m = Math.floor(S.callSec/60), s = S.callSec%60;
+    const dur = m + ':' + (s<10?'0':'') + s;
+    document.getElementById('mbox').textContent = '📞 Call ended — ' + dur;
+    sendMsg();
+  }
+  S.callSec = 0;
+}
+function togMute(b) { b.textContent = b.textContent==='🎤'?'🔇':'🎤'; }
+function togSpk(b) { b.textContent = b.textContent==='🔊'?'🔈':'🔊'; }
+function decCall() { endCall(); }
+function ansCall() {
+  document.getElementById('incbtns').style.display='none';
+  document.getElementById('cbtns').style.display='flex';
+  document.getElementById('cstat').textContent='📞 Connected';
+  document.getElementById('ctmr').style.display='block';
+  S.callTmr = setInterval(()=>{S.callSec++;const m=Math.floor(S.callSec/60),s=S.callSec%60;document.getElementById('ctmr').textContent=m+':'+(s<10?'0':'')+s;},1000);
+}
+// Listen for incoming calls
+function listenForIncomingCalls() {
+  if (!S.db || !S.fbUser) return;
+  S.db.collection('calls')
+    .where('to', '==', S.fbUser.uid)
+    .where('status', '==', 'ringing')
+    .onSnapshot(snap => {
+      snap.docChanges().forEach(change => {
+        if (change.type === 'added') {
+          const call = change.doc.data();
+          if (!S.callOn) {
+            S.callOn = true;
+            const ov = document.getElementById('cov'); ov.classList.add('on');
+            const av = document.getElementById('cav');
+            av.textContent = '📞'; av.className = 'cav a0';
+            document.getElementById('cname').textContent = call.fromName || 'Unknown';
+            document.getElementById('cstat').textContent = 'Incoming ' + (call.type||'voice') + ' call…';
+            document.getElementById('ctmr').style.display='none';
+            document.getElementById('cbtns').style.display='none';
+            document.getElementById('incbtns').style.display='block';
+            S.currentCallRef = change.doc.ref;
+          }
+        }
+      });
+    });
+}
+
+/* ──────────────────────────────────
+   THEME
+────────────────────────────────── */
+function togTheme() {
+  S.theme = S.theme==='light' ? 'dark' : 'light';
+  document.documentElement.setAttribute('data-theme', S.theme==='dark'?'dark':'');
+  const tog = document.getElementById('thtog'); tog.classList.toggle('on', S.theme==='dark');
+  document.getElementById('thlab').textContent = S.theme==='dark'?'On':'Off';
+  const ico = document.getElementById('thico');
+  ico.innerHTML = S.theme==='dark'
+    ? '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>'
+    : '<circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>';
+}
+
+/* ──────────────────────────────────
+   SETTINGS
+────────────────────────────────── */
+function openSP() { fillSP(); document.getElementById('sp').classList.add('open'); }
+function closeSP() { document.getElementById('sp').classList.remove('open'); }
+function fillSP() {
+  if (!S.user) return;
+  const av = document.getElementById('sp-pav');
+  av.textContent = S.user.av; av.className = 'sp-pav ' + S.user.cls;
+  document.getElementById('sp-pname').textContent = S.user.name;
+  document.getElementById('sp-pun').textContent = S.user.username;
+  document.getElementById('sp-pph').textContent = S.user.phone;
+  document.getElementById('epfn').value = S.user.name.split(' ')[0];
+  document.getElementById('epln').value = S.user.name.split(' ').slice(1).join(' ');
+  document.getElementById('epun').value = S.user.username;
+  document.getElementById('epbio').value = S.user.bio || '';
+  const ea = document.getElementById('ep-av');
+  ea.textContent = S.user.av; ea.className = S.user.cls;
+  ea.style.cssText = 'width:80px;height:80px;border-radius:50%;font-size:34px;display:flex;align-items:center;justify-content:center;margin:0 auto 8px;cursor:pointer;color:#fff;font-weight:700;';
+}
+function openSub(id) {
+  document.getElementById('spmain').style.display = 'none';
+  document.querySelectorAll('.spsub').forEach(s=>s.classList.remove('on'));
+  document.getElementById(id).classList.add('on');
+}
+function backSub() {
+  document.querySelectorAll('.spsub').forEach(s=>s.classList.remove('on'));
+  document.getElementById('spmain').style.display = 'flex';
+}
+async function saveProf() {
+  const fn = document.getElementById('epfn').value.trim();
+  if (!fn) { showT('❌','Name Required','Enter first name','e'); return; }
+  S.user.name = fn + (document.getElementById('epln').value.trim() ? ' ' + document.getElementById('epln').value.trim() : '');
+  S.user.username = document.getElementById('epun').value.trim() || S.user.username;
+  S.user.bio = document.getElementById('epbio').value.trim();
+  S.user.av = AVE[S.avIdx]; S.user.cls = AVC[S.avcIdx];
+  try {
+    await S.db.collection('users').doc(S.fbUser.uid).update({
+      name: S.user.name, username: S.user.username, bio: S.user.bio,
+      av: S.user.av, cls: S.user.cls,
+    });
+    fillSP(); backSub(); showT('✅','Profile Saved','Changes saved to Firebase', 's');
+  } catch(e) { showT('❌','Error', e.message, 'e'); }
+}
+function cycAv2() {
+  S.avIdx = (S.avIdx+1)%AVE.length; S.avcIdx = (S.avcIdx+1)%AVC.length;
+  S.user.av = AVE[S.avIdx]; S.user.cls = AVC[S.avcIdx]; fillSP();
+}
+function togT(id) { document.getElementById(id).classList.toggle('on'); }
+function setBG(key) {
+  const bg = document.getElementById('cpbg');
+  bg.style.backgroundImage = key ? (S.bgMap[key]||'') : 'radial-gradient(circle at 15% 25%,var(--accG),transparent 55%),radial-gradient(circle at 85% 75%,rgba(0,168,255,.06),transparent 55%)';
+  backSub(); showT('🖼','Background Set','Chat background updated','s');
+}
+function doLogout() {
+  if (confirm('Log out of SLS?')) {
+    if (S.auth) S.auth.signOut();
+    localStorage.removeItem('sls-firebase-cfg');
+    location.reload();
+  }
+}
+function doReConfig() {
+  closeSP();
+  localStorage.removeItem('sls-firebase-cfg');
+  location.reload();
+}
+
+/* ──────────────────────────────────
+   EMOJI
+────────────────────────────────── */
+function buildEmoji() {
+  document.getElementById('epop').innerHTML = EMO.map(e=>`<div class="ep" onclick="insE('${e}')">${e}</div>`).join('');
+}
+function togEmoji() { S.emojiOn=!S.emojiOn; document.getElementById('epop').classList.toggle('on',S.emojiOn); }
+function insE(e) { const b=document.getElementById('mbox'); b.textContent+=e; b.focus(); S.emojiOn=false; document.getElementById('epop').classList.remove('on'); }
+
+/* ──────────────────────────────────
+   COMPOSE MENU
+────────────────────────────────── */
+function togCM() { document.getElementById('cmenu').classList.toggle('on'); }
+function closeCM() { document.getElementById('cmenu').classList.remove('on'); }
+
+/* ──────────────────────────────────
+   MODALS
+────────────────────────────────── */
+function openM(id) { document.getElementById(id).classList.add('on'); }
+function closeM(id) { document.getElementById(id).classList.remove('on'); }
+
+/* ──────────────────────────────────
+   TOAST
+────────────────────────────────── */
+function showT(ico, title, body) {
+  document.getElementById('tio').textContent = ico;
+  document.getElementById('ttl').textContent = title;
+  document.getElementById('tbd').textContent = body;
+  const t = document.getElementById('toast'); t.classList.add('on');
+  clearTimeout(S._toastTmr);
+  S._toastTmr = setTimeout(() => t.classList.remove('on'), 3800);
+}
+
+/* ──────────────────────────────────
+   GLOBAL CLICK HANDLERS
+────────────────────────────────── */
+document.addEventListener('click', e => {
+  if (S.emojiOn && !e.target.closest('#epop') && !e.target.closest('.ib')) {
+    S.emojiOn = false; document.getElementById('epop').classList.remove('on');
+  }
+  if (!e.target.closest('#cmenu') && !e.target.closest('.fab')) closeCM();
+});
+document.querySelectorAll('.ov').forEach(o => o.addEventListener('click', e => { if(e.target===o) o.classList.remove('on'); }));
+</script>
+</body>
+</html>
